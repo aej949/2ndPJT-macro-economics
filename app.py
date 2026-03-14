@@ -47,15 +47,13 @@ def load_and_preprocess_data(start_date, end_date):
         else:
             df_comm[name] = data
     
-    # 3. 고도화된 주요 업종별 ETF 
+    # 3. 고도화된 주요 업종별 ETF (극단적 역/정 상관관계 보유)
     etf_map = {
-        '091220.KS': 'KODEX 은행(금리 수혜)',
-        '091230.KS': 'KODEX 건설(금리 피해)',
-        '091250.KS': 'KODEX 에너지화학(원유)',
-        '091240.KS': 'KODEX 철강(산업금속)',
-        '305540.KS': 'TIGER 2차전지테마(성장)',
-        '091160.KS': 'KODEX 반도체(유동성)',
-        '204420.KS': 'KODEX 배당성장(방어)'
+        'XLE': '에너지(XLE, 원유+)',
+        'JETS': '항공(JETS, 원유-)',
+        'GDX': '금광업(GDX, 금+)',
+        'XLF': '금융(XLF, 금리+)',
+        'VNQ': '리츠/부동산(VNQ, 금리-)'
     }
     df_etf = pd.DataFrame()
     for tk, name in etf_map.items():
@@ -116,9 +114,8 @@ with st.spinner('데이터 수집 및 변동률/시차 변환 중입니다...'):
 df_indexed = df_raw.copy()
 macro_cols = ['미국 10년물 국채(%)', '미국 기준금리(%)']
 comm_cols = ['금(Gold)', '은(Silver)', '유가(WTI)']
-etf_cols = [
-    'KODEX 은행(금리 수혜)', 'KODEX 건설(금리 피해)', 'KODEX 에너지화학(원유)', 
-    'KODEX 철강(산업금속)', 'TIGER 2차전지테마(성장)', 'KODEX 반도체(유동성)', 'KODEX 배당성장(방어)'
+    '에너지(XLE, 원유+)', '항공(JETS, 원유-)', '금광업(GDX, 금+)', 
+    '금융(XLF, 금리+)', '리츠/부동산(VNQ, 금리-)'
 ]
 
 cols_to_index = comm_cols + etf_cols
@@ -217,33 +214,44 @@ if not df_transformed.empty:
 
     fig_c = make_subplots(specs=[[{"secondary_y": True}]])
     
-    # ETF trace (변동률)
+    # 수익률 격차(Spread) Area Chart 추가 (1순위 지표 대상)
+    prime_indicator = top_2_indicators[0]
+    is_macro = prime_indicator in macro_cols
+    spread_y = df_transformed[selected_etf] - df_transformed[prime_indicator]
+    
+    # 1. 원본 선 (ETF)
     fig_c.add_trace(go.Scatter(x=df_transformed.index, y=df_transformed[selected_etf], name=f"{selected_etf} 변동률(%)", line=dict(color='black', width=3)), secondary_y=False)
     
+    # 2. 비교 지표 선들
     colors = ['firebrick', 'royalblue']
     for i, indicator in enumerate(top_2_indicators):
-        is_macro = indicator in macro_cols
-        # plot variable
         plot_y = df_transformed[indicator]
-        
-        fig_c.add_trace(go.Scatter(x=df_transformed.index, y=plot_y, name=f"{indicator} (Lag={lag_months}M)", line=dict(color=colors[i], dash='dash')), secondary_y=is_macro)
+        fig_c.add_trace(go.Scatter(x=df_transformed.index, y=plot_y, name=f"{indicator} (Lag={lag_months}M)", line=dict(color=colors[i], dash='dash')), secondary_y=(indicator in macro_cols))
+
+    # 3. Spread (수익률 격차) Area Chart
+    fig_c.add_trace(
+        go.Scatter(
+            x=df_transformed.index, y=spread_y, name=f"수익률(변동) 격차 vs {prime_indicator}",
+            fill='tozeroy', fillcolor='rgba(128, 128, 128, 0.4)', line=dict(width=0),
+            hoverinfo='y+name'
+        ),
+        secondary_y=False
+    )
 
     fig_c.update_layout(
-        title=f"{selected_etf} 변동률과 최상위 상관지표 변동 간 동행성 검증",
-        yaxis_title="ETF 및 원자재 변동률 (%)", yaxis2_title="금리 변동 (%p)" if any(x in macro_cols for x in top_2_indicators) else "",
+        title=f"{selected_etf} 변동률과 최상위 상관지표 변동 간 동행성 검증 (격차 색칠)",
+        yaxis_title="변동률 / 격차 (%)", yaxis2_title="금리 변동 (%p)" if any(x in macro_cols for x in top_2_indicators) else "",
         height=450, hovermode="x unified"
     )
     st.plotly_chart(fig_c, use_container_width=True)
 
     # 하단 DART Mock 데이터 표시 (분기별 영업이익률 증감 추정)
     rep_company_map = {
-        'KODEX 은행(금리 수혜)': 'KB금융, 신한지주, 하나금융지주 등',
-        'KODEX 건설(금리 피해)': '현대건설, 삼성E&A(삼성엔지니어링), GS건설 등',
-        'KODEX 에너지화학(원유)': 'LG화학, SK이노베이션, S-Oil 등',
-        'KODEX 철강(산업금속)': 'POSCO홀딩스, 현대제철, 고려아연 등',
-        'TIGER 2차전지테마(성장)': 'LG에너지솔루션, 포스코퓨처엠, 에코프로 등',
-        'KODEX 반도체(유동성)': 'SK하이닉스, 삼성전자, 한미반도체 등',
-        'KODEX 배당성장(방어)': '기업은행, 삼성화재, KT&G 등'
+        '에너지(XLE, 원유+)': '엑슨모빌(ExxonMobil), 셰브론(Chevron) 등',
+        '항공(JETS, 원유-)': '델타항공, 유나이티드항공, 아메리칸항공 등',
+        '금광업(GDX, 금+)': '뉴몬트, 배릭골드, 킨로스 골드 등',
+        '금융(XLF, 금리+)': 'JP모건, 뱅크오브아메리카, 웰스파고 등',
+        '리츠/부동산(VNQ, 금리-)': '프로로지스, 아메리칸타워, 에퀴닉스 등'
     }
     
     rep_companies = rep_company_map.get(selected_etf, '주요 상장 기업')
@@ -260,6 +268,37 @@ if not df_transformed.empty:
     fig_bar.update_traces(marker_color=['#2ca02c' if x >= 0 else '#d62728' for x in mock_profits])
     fig_bar.update_layout(height=300)
     st.plotly_chart(fig_bar, use_container_width=True)
+
+    st.markdown("---")
+
+    # ================================
+    # 패널 D: 산점도(Scatter) 및 회귀선(Trendline)
+    # ================================
+    st.header(f"📌 패널 D: {selected_etf} 방향성 증명 산점도")
+    st.markdown(f"가장 높은 상관관계를 보인 **{prime_indicator}**의 변동률(X축) 대비 **{selected_etf}**의 변동률(Y축)의 분산 및 선형추세를 확인합니다.")
+
+    scatter_df = df_transformed[[prime_indicator, selected_etf]].dropna()
+    x_val = scatter_df[prime_indicator]
+    y_val = scatter_df[selected_etf]
+    
+    if len(scatter_df) > 1:
+        m, b = np.polyfit(x_val, y_val, 1)
+        trend_line = m * x_val + b
+
+        fig_d = go.Figure()
+        # 산점도
+        fig_d.add_trace(go.Scatter(x=x_val, y=y_val, mode='markers', name='변동률 관측치', marker=dict(color='teal', opacity=0.6)))
+        # 회귀선
+        fig_d.add_trace(go.Scatter(x=x_val, y=trend_line, mode='lines', name=f'Trend Line (기울기: {m:.2f})', line=dict(color='darkred', width=3)))
+
+        fig_d.update_layout(
+            title=f"{prime_indicator} 변화에 따른 {selected_etf} 변화 추세선 검증",
+            xaxis_title=f"{prime_indicator} 변동",
+            yaxis_title=f"{selected_etf} 변동",
+            height=450,
+            hovermode="closest"
+        )
+        st.plotly_chart(fig_d, use_container_width=True)
 
 st.markdown("""
 > ⚠️ **분석의 한계점 및 주의사항**
