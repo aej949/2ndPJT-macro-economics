@@ -2,7 +2,6 @@ streamlit
 pandas
 numpy
 yfinance
-pandas_datareader
 plotly
 koreanize_matplotlib
 matplotlib

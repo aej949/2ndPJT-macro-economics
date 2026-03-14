@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import yfinance as yf
-import pandas_datareader.data as web
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -23,11 +22,22 @@ st.markdown("""
 # --- 1. Data Fetching & Preprocessing ---
 @st.cache_data(ttl=3600)
 def load_and_preprocess_data(start_date, end_date):
-    # 1. Macro Indicators (FRED via pandas_datareader)
-    # DGS10 (US 10-Year Treasury Yield), FEDFUNDS (Fed Funds Rate) proxy
-    fred_series = ['DGS10', 'FEDFUNDS']
+# 1. Macro Indicators (FRED via Pandas CSV HTTP request)
+    # DGS10 (US 10-Year Treasury Yield), FEDFUNDS (Fed Funds Rate)
     try:
-        df_macro = web.DataReader(fred_series, 'fred', start_date, end_date)
+        # 미국 10년물 국채 금리
+        dgs10 = pd.read_csv(
+            'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10',
+            index_col=0, parse_dates=True, na_values='.'
+        )
+        # 미국 기준금리 
+        fedfunds = pd.read_csv(
+            'https://fred.stlouisfed.org/graph/fredgraph.csv?id=FEDFUNDS',
+            index_col=0, parse_dates=True, na_values='.'
+        )
+        df_macro = dgs10.join(fedfunds, how='outer')
+        # 필요한 기간만 끊어내기
+        df_macro = df_macro.loc[start_date:end_date]
         df_macro.columns = ['미국 10년물 국채(%)', '미국 기준금리(%)']
         df_macro.ffill(inplace=True)
     except Exception as e:
