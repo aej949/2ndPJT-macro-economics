@@ -156,8 +156,8 @@ st.markdown("---")
 # 변동률 및 시차 데이터 변환 로직 (Data Transformation)
 # ================================
 df_transformed = df_raw.copy()
-# 1. 변동률 계산 (금리는 차감 p(%p) 적용, 그외는 수익률(%))
-for col in indep_vars := macro_cols + comm_cols:
+indep_vars = macro_cols + comm_cols
+for col in indep_vars:
     if col in macro_cols:
         df_transformed[col] = df_transformed[col].diff(periods=pct_periods) # 금리는 %p 변동
     else:
