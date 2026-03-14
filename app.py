@@ -236,7 +236,19 @@ if not df_transformed.empty:
     st.plotly_chart(fig_c, use_container_width=True)
 
     # 하단 DART Mock 데이터 표시 (분기별 영업이익률 증감 추정)
-    st.markdown("**📊 해당 섹터 대표 기업 분기별 영업이익률 증감 추정치 (Mock Data)**")
+    rep_company_map = {
+        'KODEX 은행(금리 수혜)': 'KB금융, 신한지주, 하나금융지주 등',
+        'KODEX 건설(금리 피해)': '현대건설, 삼성E&A(삼성엔지니어링), GS건설 등',
+        'KODEX 에너지화학(원유)': 'LG화학, SK이노베이션, S-Oil 등',
+        'KODEX 철강(산업금속)': 'POSCO홀딩스, 현대제철, 고려아연 등',
+        'TIGER 2차전지테마(성장)': 'LG에너지솔루션, 포스코퓨처엠, 에코프로 등',
+        'KODEX 반도체(유동성)': 'SK하이닉스, 삼성전자, 한미반도체 등',
+        'KODEX 배당성장(방어)': '기업은행, 삼성화재, KT&G 등'
+    }
+    
+    rep_companies = rep_company_map.get(selected_etf, '주요 상장 기업')
+
+    st.markdown(f"**📊 해당 섹터 대표 기업 ( {rep_companies} ) 분기별 영업이익률 증감 추정치 (Mock Data)**")
     q_trend_dates = pd.date_range(start=start_date, end=end_date, freq='QE')
     
     np.random.seed(hash(selected_etf) % 2**32) 
