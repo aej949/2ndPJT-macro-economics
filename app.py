@@ -114,6 +114,7 @@ with st.spinner('데이터 수집 및 변동률/시차 변환 중입니다...'):
 df_indexed = df_raw.copy()
 macro_cols = ['미국 10년물 국채(%)', '미국 기준금리(%)']
 comm_cols = ['금(Gold)', '은(Silver)', '유가(WTI)']
+etf_cols = [
     '에너지(XLE, 원유+)', '항공(JETS, 원유-)', '금광업(GDX, 금+)', 
     '금융(XLF, 금리+)', '리츠/부동산(VNQ, 금리-)'
 ]
