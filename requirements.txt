@@ -3,6 +3,4 @@ pandas
 numpy
 yfinance
 plotly
-koreanize_matplotlib
-matplotlib
 python-dateutil
