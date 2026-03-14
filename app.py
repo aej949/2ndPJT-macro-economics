@@ -171,7 +171,13 @@ if lag_days > 0:
     for col in indep_vars:
         df_transformed[col] = df_transformed[col].shift(lag_days)
 
+# 모두 NaN인 컬럼(에러로 수집되지 않은 ETF 등)을 먼저 버린 후 행 결측치 제거
+df_transformed.dropna(axis=1, how='all', inplace=True)
 df_transformed.dropna(inplace=True)
+
+# 파싱 성공한 목록으로 컬럼 목록 갱신
+etf_cols = [c for c in etf_cols if c in df_transformed.columns]
+indep_vars = [c for c in indep_vars if c in df_transformed.columns]
 
 # ================================
 # 패널 B: 업종별 상관관계 매트릭스
