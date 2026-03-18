@@ -1,6 +1,5 @@
-streamlit
-pandas
-numpy
 yfinance
+pandas
 plotly
-python-dateutil
+streamlit
+koreanize-matplotlib
